@@ -715,7 +715,11 @@ function ASSERT(assert, ...output)
 {
     if (assert) return;
     console.assert(assert, ...output)
-    throw new Error('Assert failed!'); // halt execution
+    // carry the detail into the Error — a bare 'Assert failed!' survives
+    // promise rejections and rethrows but tells you nothing about which
+    // check tripped or what it saw
+    const detail = output.map(o => typeof o === 'object' ? JSON.stringify(o) : String(o)).join(' ');
+    throw new Error(`Assert failed!${detail ? ` ${detail}` : ''}`); // halt execution
 }
 
 /** Log to console if debug is enabled, does nothing in release builds
