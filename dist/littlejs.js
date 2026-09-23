@@ -94,6 +94,7 @@ function setPaused(isPaused=true) { paused = isPaused; }
 let frameTimeLastMS = 0, frameTimeBufferMS = 0, averageFPS = 0;
 let windowWidthLast = 0, windowHeightLast = 0, windowPixelRatioLast = 0;
 let engineUpdateInternal; // assigned by engineInit so engineStep can drive it
+let engineRootElement; // root element canvases attach to, defaults to document.body
 let showEngineVersion = true;
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -182,6 +183,7 @@ async function engineInit(gameInit, gameUpdate, gameUpdatePost, gameRender, game
     if (!document.body)
         document.documentElement.appendChild(document.createElement('body'));
     rootElement ||= document.body;
+    engineRootElement = rootElement;
 
     // allow passing in empty functions
     gameInit       ||= ()=>{};
@@ -281,10 +283,10 @@ async function engineInit(gameInit, gameUpdate, gameUpdatePost, gameRender, game
         if (!headlessMode)
         {
             const dpr = devicePixelRatio;
-            windowChanged = windowWidthLast !== innerWidth ||
-                windowHeightLast !== innerHeight || windowPixelRatioLast !== dpr;
-            windowWidthLast = innerWidth;
-            windowHeightLast = innerHeight;
+            windowChanged = windowWidthLast !== engineRootWidth() ||
+                windowHeightLast !== engineRootHeight() || windowPixelRatioLast !== dpr;
+            windowWidthLast = engineRootWidth();
+            windowHeightLast = engineRootHeight();
             windowPixelRatioLast = dpr;
         }
 
@@ -343,7 +345,8 @@ async function engineInit(gameInit, gameUpdate, gameUpdatePost, gameRender, game
         '-webkit-user-select:none;' + // compatibility for ios
         'touch-action:none;' +        // prevent mobile pinch to resize
         '-webkit-touch-callout:none'; // compatibility for ios
-    rootElement.style.cssText = styleRoot;
+    if (rootElement === document.body)
+        rootElement.style.cssText = styleRoot; // embedded roots keep host styles
     mainCanvas = rootElement.appendChild(document.createElement('canvas'));
     drawContext = mainContext = mainCanvas.getContext('2d');
 
@@ -407,6 +410,11 @@ async function engineInit(gameInit, gameUpdate, gameUpdatePost, gameRender, game
     }
 }
 
+// Size of the area canvases fit into — the window for a full-page engine,
+// the root element's own box when embedded
+function engineRootWidth()  { return !engineRootElement || engineRootElement === document.body ? innerWidth  : engineRootElement.clientWidth; }
+function engineRootHeight() { return !engineRootElement || engineRootElement === document.body ? innerHeight : engineRootElement.clientHeight; }
+
 // Resize the canvas to fit the window and prepare it for a new frame
 // Called automatically each frame and by the splash screen before the loop starts
 // mainCanvasSize is css pixels and the backing store is that scaled by the
@@ -423,8 +431,8 @@ function engineUpdateCanvas()
         // set canvas fixed size
         mainCanvasSize = canvasFixedSize.copy();
 
-        // fit to window using css width and height
-        const innerAspect = innerWidth / innerHeight;
+        // fit to the root using css width and height
+        const innerAspect = engineRootWidth() / engineRootHeight();
         const fixedAspect = canvasFixedSize.x / canvasFixedSize.y;
         const w = innerAspect < fixedAspect ? '100%' : '';
         const h = innerAspect < fixedAspect ? '' : '100%';
@@ -438,13 +446,13 @@ function engineUpdateCanvas()
     }
     else
     {
-        // get main canvas size based on window size, in css pixels so
+        // get main canvas size based on root size, in css pixels so
         // canvasMaxSize caps how big the canvas looks, not its resolution
-        mainCanvasSize.x = min(innerWidth,  canvasMaxSize.x) | 0;
-        mainCanvasSize.y = min(innerHeight, canvasMaxSize.y) | 0;
+        mainCanvasSize.x = min(engineRootWidth(),  canvasMaxSize.x) | 0;
+        mainCanvasSize.y = min(engineRootHeight(), canvasMaxSize.y) | 0;
 
         // responsive aspect ratio
-        const innerAspect = innerWidth / innerHeight;
+        const innerAspect = engineRootWidth() / engineRootHeight();
         ASSERT(canvasMinAspect <= canvasMaxAspect);
         if (canvasMaxAspect && innerAspect > canvasMaxAspect)
         {
