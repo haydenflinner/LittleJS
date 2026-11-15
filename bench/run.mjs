@@ -5,7 +5,7 @@
 //   node bench/run.mjs "bench/particles.html?n=20000&sort=0" ...   any page urls from the repo root
 // headless Chrome renders with SwiftShader, a software GPU, so the numbers compare the engines' JS and driver
 // overhead but not real hardware; open the pages in a browser for that
-import { serve } from './serve.mjs';
+import { serve } from './serve.js';
 import { launchChrome } from './browser.mjs';
 const args = process.argv.slice(2), split = args.indexOf('--');
 const extra = split < 0 ? '' : '&' + args.slice(split + 1).join('&');

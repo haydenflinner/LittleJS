@@ -1,7 +1,7 @@
 // CPU profile of a bench page's JS thread: node bench/profile.mjs "bench/particles.html?n=20000"
 // prints the functions with the most self time; the JS time is real even though the GPU is SwiftShader, but a
 // page that is GPU bound there renders few frames, so add &aa=0&w=320&h=180 to keep the GPU out of the way
-import { serve } from './serve.mjs';
+import { serve } from './serve.js';
 import { launchChrome } from './browser.mjs';
 const url = process.argv[2] || 'bench/cubes.html?n=5000';
 const server = await serve(), base = 'http://localhost:' + server.address().port + '/';
